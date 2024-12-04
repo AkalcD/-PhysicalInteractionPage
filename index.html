@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VocaDB Popularity Visualizer</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1a1a2e;
+            color: #fff;
+            font-family: 'Arial', sans-serif;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .song-button {
+            width: 100%;
+            padding: 15px;
+            margin: 8px 0;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 16px;
+            text-align: left;
+            cursor: pointer;
+            transition: background 0.3s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .song-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        .song-button.playing {
+            background: rgba(74, 144, 226, 0.3);
+        }
+        .song-info {
+            flex-grow: 1;
+        }
+        .song-title {
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        .song-rating {
+            color: #4a90e2;
+            font-size: 14px;
+        }
+        .rank {
+            font-size: 20px;
+            font-weight: bold;
+            margin-right: 15px;
+            color: #4a90e2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Ranking de Popularidad VocaDB</h1>
+        <p>Toca una canción para sentir su popularidad</p>
+        <div id="songs-container"></div>
+    </div>
+
+    <script>
+        const data = [
+            { song: "Rollin' Girl", rating: 1915, artist: "Wowaka" },
+            { song: "Meltdown", rating: 1699, artist: "Iroha" },
+            { song: "Matryoshka", rating: 1474, artist: "Kenshi Yonezu" },
+            { song: "Lost one's Gokoku", rating: 1402, artist: "Neru" },
+            { song: "Senbonzakura", rating: 1271, artist: "Kurousa-P" },
+            { song: "Unknown Mother Goose", rating: 1262, artist: "Wowaka" },
+            { song: "Viva Happy", rating: 1195, artist: "Giga" },
+            { song: "ODDS&ENDS", rating: 1169, artist: "Ryo" },
+            { song: "Love is War", rating: 1148, artist: "Supercell" },
+            { song: "Romeo and Cinderella", rating: 1088, artist: "Doriko" },
+            { song: "World is Mine", rating: 1087, artist: "Supercell" },
+            { song: "LUVORATORRRRRY!", rating: 1074, artist: "Giga, Reol" },
+            { song: "Tokyo Teddy Bear", rating: 1062, artist: "Neru" },
+            { song: "Unknown Mother Goose", rating: 1051, artist: "Wowaka" },
+            { song: "Melt", rating: 1005, artist: "Ryo" }
+        ];
+
+        const maxRating = Math.max(...data.map(song => song.rating));
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        function createTone(rating) {
+            const frequency = 220 + (rating / maxRating) * 880; // Frecuencia entre 220Hz y 1100Hz
+            const duration = (rating / maxRating) * 2; // Duración entre 0 y 2 segundos
+            
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.type = 'sine';
+            oscillator.frequency.value = frequency;
+            
+            gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+            
+            oscillator.start();
+            oscillator.stop(audioContext.currentTime + duration);
+        }
+
+        function vibrate(rating) {
+            if (navigator.vibrate) {
+                const intensity = Math.floor((rating / maxRating) * 1000); // Máximo 1 segundo
+                const pulses = Math.floor(rating / 200); // Número de pulsos basado en rating
+                const pattern = Array(pulses).fill(intensity / pulses);
+                navigator.vibrate(pattern);
+            }
+        }
+
+        function createSongButton(songData, index) {
+            const button = document.createElement('button');
+            button.className = 'song-button';
+            
+            button.innerHTML = `
+                <span class="rank">${index + 1}</span>
+                <div class="song-info">
+                    <div class="song-title">${songData.song}</div>
+                    <div class="song-rating">${songData.rating} puntos - ${songData.artist}</div>
+                </div>
+            `;
+
+            button.addEventListener('click', () => {
+                // Remover clase playing de todos los botones
+                document.querySelectorAll('.song-button').forEach(b => b.classList.remove('playing'));
+                
+                // Añadir clase playing al botón actual
+                button.classList.add('playing');
+                
+                // Crear tono y vibración
+                createTone(songData.rating);
+                vibrate(songData.rating);
+                
+                // Remover clase playing después de la animación
+                setTimeout(() => {
+                    button.classList.remove('playing');
+                }, 2000);
+            });
+
+            return button;
+        }
+
+        const container = document.getElementById('songs-container');
+        data.forEach((songData, index) => {
+            container.appendChild(createSongButton(songData, index));
+        });
+    </script>
+</body>
+</html>
