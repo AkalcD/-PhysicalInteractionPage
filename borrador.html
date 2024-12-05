@@ -1,0 +1,196 @@
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VocaDB Popularity Visualizer</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1a1a2e;
+            color: #fff;
+            font-family: 'Arial', sans-serif;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .song-button {
+            width: 100%;
+            padding: 15px;
+            margin: 8px 0;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 16px;
+            text-align: left;
+            cursor: pointer;
+            transition: background 0.3s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .song-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        .song-button.playing {
+            background: rgba(74, 144, 226, 0.3);
+            animation: pulse 0.5s infinite;
+        }
+        .song-button.paused {
+            background: rgba(74, 144, 226, 0.15);
+        }
+        @keyframes pulse {
+            0% { background: rgba(74, 144, 226, 0.3); }
+            50% { background: rgba(74, 144, 226, 0.5); }
+            100% { background: rgba(74, 144, 226, 0.3); }
+        }
+        .song-info {
+            flex-grow: 1;
+        }
+        .song-title {
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        .song-rating {
+            color: #4a90e2;
+            font-size: 14px;
+        }
+        .rank {
+            font-size: 20px;
+            font-weight: bold;
+            margin-right: 15px;
+            color: #4a90e2;
+        }
+        .pulse-count {
+            background: rgba(74, 144, 226, 0.2);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 14px;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Ranking de Popularidad VocaDB</h1>
+        <p>Toca una canción para reproducirla y sentir su popularidad</p>
+        <div id="songs-container"></div>
+    </div>
+
+    <script>
+        const data = [
+            { song: "Rollin' Girl", rating: 1915, link: "https://youtu.be/vnw8zURAxkU", artist: "Wowaka", releaseDate: "15 de marzo de 2010", image1: "images/wowaka.webp", preview: "sounds/RG.mp3", pulses: 15 },
+            { song: "Meltdown", rating: 1699, link: "https://www.youtube.com/watch?v=dSw8CucthGc", artist: "Iroha", releaseDate: "3 de junio de 2009", image1: "images/iroha(sasaki).jpg", preview: "sounds/Meltdown.mp3", pulses: 14 },
+            { song: "Matryoshka", rating: 1474, link: "https://youtu.be:/HOz-9FzIDf0", artist: "Kenshi Yonezu", releaseDate: "14 de julio de 2010", image1: "images/ハチ.webp", preview: "sounds/Matryoshka.mp3", pulses: 13 },
+            { song: "Lost one's Gokoku", rating: 1402, link: "https://youtu.be/8oBV3jPTW4s", artist: "Neru", releaseDate: "26 de noviembre de 2013", image1: "images/Oshiire-P (Neru).jpeg", preview: "sounds/lost_ones_gokoku.mp3", pulses: 12 },
+            { song: "Senbonzakura", rating: 1271, link: "https://www.youtube.com/watch?v=Mqps4anhz0Q", artist: "Kurousa-P", releaseDate: "17 de septiembre de 2011", image1: "images/Kurousa_p.png", preview: "sounds/Senbonzakura.mp3", pulses: 11 },
+            { song: "Unknown Mother Goose", rating: 1262, link: "https://youtu.be/ZB75e7vzX0I", artist: "Wowaka", releaseDate: "31 de agosto de 2017", image1: "images/wowaka.webp", preview: "sounds/Unknown Mother Goose.mp3", pulses: 10 },
+            { song: "Viva Happy", rating: 1195, link: "https://youtu.be/TkroHwQYpFE", artist: "Giga", releaseDate: "21 de julio de 2013", image1: "images/Giga.jpeg", preview: "sounds/Viva Happy.mp3", pulses: 9 },
+            { song: "ODDS&ENDS", rating: 1169, link: "https://www.youtube.com/watch?v=HUzLUGKwQJc", artist: "Ryo", releaseDate: "29 de agosto de 2012", image1: "images/Ryo.webp", preview: "sounds/ODDS&ENDS.mp3", pulses: 8 },
+            { song: "Love is War", rating: 1148, link: "https://youtu.be/3Jf3rEzIFpA", artist: "Supercell", releaseDate: "22 de febrero de 2008", image1: "images/Supercell.jpg", preview: "sounds/Love is War.mp3", pulses: 7 },
+            { song: "Romeo and Cinderella", rating: 1088, link: "https://www.youtube.com/watch?v=9HrOqmiEsN8", artist: "Doriko", releaseDate: "6 de octubre de 2008", image1: "images/doriko.webp", preview: "sounds/Romeo and Cinderella.mp3", pulses: 6 },
+            { song: "World is Mine", rating: 1087, link: "https://youtu.be/JW-bFg06Qgc", artist: "Supercell", releaseDate: "31 de mayo de 2008", image1: "images/Supercell.jpg", preview: "sounds/World is Mine.mp3", pulses: 5 },
+            { song: "LUVORATORRRRRY!", rating: 1074, link: "https://youtu.be/LHdlw9F3KP4", artist: "Giga, Reol", releaseDate: "12 de agosto de 2014", image1: "images/Giga.jpeg", preview: "sounds/LUVORATORRRRRY!.mp3", pulses: 4 },
+            { song: "Tokyo Teddy Bear", rating: 1062, link: "https://youtu.be/eSI7RsjZy1E", artist: "Neru", releaseDate: "20 de diciembre de 2011", image1: "images/Oshiire-P (Neru).jpeg", preview: "sounds/Tokyo Teddy Bear.mp3", pulses: 3 },
+            { song: "Unknown Mother Goose", rating: 1051, link: "https://youtu.be/P_CSdxSGfaA", artist: "Wowaka", releaseDate: "31 de agosto de 2017", image1: "images/wowaka.webp", preview: "sounds/Unknown Mother Goose Covert.mp3", pulses: 2 },
+            { song: "Melt", rating: 1005, link: "https://www.youtube.com/watch?v=o1jAMSQyVPc", artist: "Ryo", releaseDate: "7 de diciembre de 2007", image1: "images/Ryo.webp", preview: "sounds/Melt.mp3", pulses: 1 }
+        ];
+
+        function vibrate(pulses) {
+            if (navigator.vibrate) {
+                const pulseDuration = 50;
+                const pauseDuration = 30;
+                
+                const pattern = [];
+                for (let i = 0; i < pulses; i++) {
+                    pattern.push(pulseDuration);
+                    if (i < pulses - 1) {
+                        pattern.push(pauseDuration);
+                    }
+                }
+                
+                navigator.vibrate(pattern);
+                return pattern;
+            }
+            return [];
+        }
+
+        let currentAudio = null;
+        let currentButton = null;
+
+        function createSongButton(songData, index) {
+            const button = document.createElement('button');
+            button.className = 'song-button';
+            
+            button.innerHTML = `
+                <span class="rank">${index + 1}</span>
+                <div class="song-info">
+                    <div class="song-title">${songData.song}</div>
+                    <div class="song-rating">
+                        ${songData.rating} puntos - ${songData.artist}
+                        <span class="pulse-count">${songData.pulses} pulso${songData.pulses > 1 ? 's' : ''}</span>
+                    </div>
+                </div>
+            `;
+
+            const audio = new Audio(songData.preview);
+            
+            button.addEventListener('click', () => {
+                // Detener cualquier vibración anterior
+                navigator.vibrate(0);
+
+                // Si hay otra canción reproduciéndose, la detenemos
+                if (currentAudio && currentAudio !== audio) {
+                    currentAudio.pause();
+                    currentAudio.currentTime = 0;
+                    if (currentButton) {
+                        currentButton.classList.remove('playing', 'paused');
+                    }
+                }
+
+                // Si es la misma canción que está sonando
+                if (currentAudio === audio) {
+                    if (audio.paused) {
+                        audio.play();
+                        button.classList.add('playing');
+                        button.classList.remove('paused');
+                        vibrate(songData.pulses); // Vibrar al reanudar
+                    } else {
+                        audio.pause();
+                        button.classList.remove('playing');
+                        button.classList.add('paused');
+                        navigator.vibrate(0); // Detener vibración al pausar
+                    }
+                } else {
+                    // Si es una nueva canción
+                    audio.play();
+                    button.classList.add('playing');
+                    button.classList.remove('paused');
+                    currentAudio = audio;
+                    currentButton = button;
+                    vibrate(songData.pulses); // Vibrar al iniciar nueva canción
+                }
+            });
+
+            // Cuando la canción termina
+            audio.addEventListener('ended', () => {
+                button.classList.remove('playing', 'paused');
+                currentAudio = null;
+                currentButton = null;
+                navigator.vibrate(0); // Asegurarse de que la vibración se detenga
+            });
+
+            return button;
+        }
+
+        // Crear y añadir todos los botones de canciones
+        const container = document.getElementById('songs-container');
+        data.forEach((songData, index) => {
+            const button = createSongButton(songData, index);
+            container.appendChild(button);
+        });
+    </script>
+</body>
+</html>
