@@ -37,6 +37,12 @@
         }
         .song-button.playing {
             background: rgba(74, 144, 226, 0.3);
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0% { background: rgba(74, 144, 226, 0.3); }
+            50% { background: rgba(74, 144, 226, 0.5); }
+            100% { background: rgba(74, 144, 226, 0.3); }
         }
         .song-info {
             flex-grow: 1;
@@ -54,6 +60,11 @@
             font-weight: bold;
             margin-right: 15px;
             color: #4a90e2;
+        }
+        .vibration-indicator {
+            font-size: 12px;
+            color: #666;
+            margin-top: 4px;
         }
     </style>
 </head>
@@ -84,11 +95,12 @@
         ];
 
         const maxRating = Math.max(...data.map(song => song.rating));
+        const minRating = Math.min(...data.map(song => song.rating));
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
         function createTone(rating) {
-            const frequency = 220 + (rating / maxRating) * 880; // Frecuencia entre 220Hz y 1100Hz
-            const duration = (rating / maxRating) * 2; // Duración entre 0 y 2 segundos
+            const frequency = 220 + (rating / maxRating) * 880;
+            const duration = (rating / maxRating) * 2;
             
             const oscillator = audioContext.createOscillator();
             const gainNode = audioContext.createGain();
@@ -99,7 +111,7 @@
             oscillator.type = 'sine';
             oscillator.frequency.value = frequency;
             
-            gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
             gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
             
             oscillator.start();
@@ -108,11 +120,30 @@
 
         function vibrate(rating) {
             if (navigator.vibrate) {
-                const intensity = Math.floor((rating / maxRating) * 1000); // Máximo 1 segundo
-                const pulses = Math.floor(rating / 200); // Número de pulsos basado en rating
-                const pattern = Array(pulses).fill(intensity / pulses);
+                // Calcular la intensidad normalizada (del 0 al 1)
+                const normalizedRating = (rating - minRating) / (maxRating - minRating);
+                
+                // Duración base de cada pulso (entre 100ms y 300ms)
+                const basePulseDuration = 100 + (normalizedRating * 200);
+                
+                // Número de pulsos basado en la popularidad (entre 1 y 8 pulsos)
+                const numPulses = Math.max(1, Math.floor(normalizedRating * 8));
+                
+                // Crear patrón de vibración
+                const pattern = [];
+                for (let i = 0; i < numPulses; i++) {
+                    // Vibración
+                    pattern.push(basePulseDuration);
+                    // Pausa entre vibraciones (más corta para canciones más populares)
+                    if (i < numPulses - 1) {
+                        pattern.push(100 - (normalizedRating * 50));
+                    }
+                }
+                
                 navigator.vibrate(pattern);
+                return pattern;
             }
+            return [];
         }
 
         function createSongButton(songData, index) {
@@ -124,24 +155,38 @@
                 <div class="song-info">
                     <div class="song-title">${songData.song}</div>
                     <div class="song-rating">${songData.rating} puntos - ${songData.artist}</div>
+                    <div class="vibration-indicator"></div>
                 </div>
             `;
 
             button.addEventListener('click', () => {
+                // Detener cualquier vibración anterior
+                navigator.vibrate(0);
+                
                 // Remover clase playing de todos los botones
-                document.querySelectorAll('.song-button').forEach(b => b.classList.remove('playing'));
+                document.querySelectorAll('.song-button').forEach(b => {
+                    b.classList.remove('playing');
+                    b.querySelector('.vibration-indicator').textContent = '';
+                });
                 
                 // Añadir clase playing al botón actual
                 button.classList.add('playing');
                 
                 // Crear tono y vibración
                 createTone(songData.rating);
-                vibrate(songData.rating);
+                const pattern = vibrate(songData.rating);
+                
+                // Mostrar información de vibración
+                const totalDuration = pattern.reduce((a, b) => a + b, 0);
+                const pulses = Math.floor(pattern.length / 2) + 1;
+                button.querySelector('.vibration-indicator').textContent = 
+                    `Vibración: ${pulses} pulsos, ${totalDuration}ms total`;
                 
                 // Remover clase playing después de la animación
                 setTimeout(() => {
                     button.classList.remove('playing');
-                }, 2000);
+                    button.querySelector('.vibration-indicator').textContent = '';
+                }, totalDuration);
             });
 
             return button;
