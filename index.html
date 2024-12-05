@@ -37,7 +37,7 @@
         }
         .song-button.playing {
             background: rgba(74, 144, 226, 0.3);
-            animation: pulse 1s infinite;
+            animation: pulse 0.5s infinite;
         }
         @keyframes pulse {
             0% { background: rgba(74, 144, 226, 0.3); }
@@ -61,10 +61,12 @@
             margin-right: 15px;
             color: #4a90e2;
         }
-        .vibration-indicator {
-            font-size: 12px;
-            color: #666;
-            margin-top: 4px;
+        .pulse-count {
+            background: rgba(74, 144, 226, 0.2);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 14px;
+            margin-left: 10px;
         }
     </style>
 </head>
@@ -77,31 +79,26 @@
 
     <script>
         const data = [
-            { song: "Rollin' Girl", rating: 1915, artist: "Wowaka" },
-            { song: "Meltdown", rating: 1699, artist: "Iroha" },
-            { song: "Matryoshka", rating: 1474, artist: "Kenshi Yonezu" },
-            { song: "Lost one's Gokoku", rating: 1402, artist: "Neru" },
-            { song: "Senbonzakura", rating: 1271, artist: "Kurousa-P" },
-            { song: "Unknown Mother Goose", rating: 1262, artist: "Wowaka" },
-            { song: "Viva Happy", rating: 1195, artist: "Giga" },
-            { song: "ODDS&ENDS", rating: 1169, artist: "Ryo" },
-            { song: "Love is War", rating: 1148, artist: "Supercell" },
-            { song: "Romeo and Cinderella", rating: 1088, artist: "Doriko" },
-            { song: "World is Mine", rating: 1087, artist: "Supercell" },
-            { song: "LUVORATORRRRRY!", rating: 1074, artist: "Giga, Reol" },
-            { song: "Tokyo Teddy Bear", rating: 1062, artist: "Neru" },
-            { song: "Unknown Mother Goose", rating: 1051, artist: "Wowaka" },
-            { song: "Melt", rating: 1005, artist: "Ryo" }
+            { song: "Rollin' Girl", rating: 1915, artist: "Wowaka", pulses: 15 },
+            { song: "Meltdown", rating: 1699, artist: "Iroha", pulses: 14 },
+            { song: "Matryoshka", rating: 1474, artist: "Kenshi Yonezu", pulses: 13 },
+            { song: "Lost one's Gokoku", rating: 1402, artist: "Neru", pulses: 12 },
+            { song: "Senbonzakura", rating: 1271, artist: "Kurousa-P", pulses: 11 },
+            { song: "Unknown Mother Goose", rating: 1262, artist: "Wowaka", pulses: 10 },
+            { song: "Viva Happy", rating: 1195, artist: "Giga", pulses: 9 },
+            { song: "ODDS&ENDS", rating: 1169, artist: "Ryo", pulses: 8 },
+            { song: "Love is War", rating: 1148, artist: "Supercell", pulses: 7 },
+            { song: "Romeo and Cinderella", rating: 1088, artist: "Doriko", pulses: 6 },
+            { song: "World is Mine", rating: 1087, artist: "Supercell", pulses: 5 },
+            { song: "LUVORATORRRRRY!", rating: 1074, artist: "Giga, Reol", pulses: 4 },
+            { song: "Tokyo Teddy Bear", rating: 1062, artist: "Neru", pulses: 3 },
+            { song: "Unknown Mother Goose", rating: 1051, artist: "Wowaka", pulses: 2 },
+            { song: "Melt", rating: 1005, artist: "Ryo", pulses: 1 }
         ];
 
-        const maxRating = Math.max(...data.map(song => song.rating));
-        const minRating = Math.min(...data.map(song => song.rating));
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
-        function createTone(rating) {
-            const frequency = 220 + (rating / maxRating) * 880;
-            const duration = (rating / maxRating) * 2;
-            
+        function createTone(rating, pulses) {
             const oscillator = audioContext.createOscillator();
             const gainNode = audioContext.createGain();
             
@@ -109,34 +106,25 @@
             gainNode.connect(audioContext.destination);
             
             oscillator.type = 'sine';
-            oscillator.frequency.value = frequency;
+            oscillator.frequency.value = 220 + (pulses * 40);
             
-            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+            gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
             
             oscillator.start();
-            oscillator.stop(audioContext.currentTime + duration);
+            oscillator.stop(audioContext.currentTime + 0.2);
         }
 
-        function vibrate(rating) {
+        function vibrate(pulses) {
             if (navigator.vibrate) {
-                // Calcular la intensidad normalizada (del 0 al 1)
-                const normalizedRating = (rating - minRating) / (maxRating - minRating);
+                const pulseDuration = 50; // Reducido de 200ms a 50ms
+                const pauseDuration = 30; // Reducido de 100ms a 30ms
                 
-                // Duración base de cada pulso (entre 100ms y 300ms)
-                const basePulseDuration = 100 + (normalizedRating * 200);
-                
-                // Número de pulsos basado en la popularidad (entre 1 y 8 pulsos)
-                const numPulses = Math.max(1, Math.floor(normalizedRating * 8));
-                
-                // Crear patrón de vibración
                 const pattern = [];
-                for (let i = 0; i < numPulses; i++) {
-                    // Vibración
-                    pattern.push(basePulseDuration);
-                    // Pausa entre vibraciones (más corta para canciones más populares)
-                    if (i < numPulses - 1) {
-                        pattern.push(100 - (normalizedRating * 50));
+                for (let i = 0; i < pulses; i++) {
+                    pattern.push(pulseDuration);
+                    if (i < pulses - 1) {
+                        pattern.push(pauseDuration);
                     }
                 }
                 
@@ -154,38 +142,41 @@
                 <span class="rank">${index + 1}</span>
                 <div class="song-info">
                     <div class="song-title">${songData.song}</div>
-                    <div class="song-rating">${songData.rating} puntos - ${songData.artist}</div>
-                    <div class="vibration-indicator"></div>
+                    <div class="song-rating">
+                        ${songData.rating} puntos - ${songData.artist}
+                        <span class="pulse-count">${songData.pulses} pulso${songData.pulses > 1 ? 's' : ''}</span>
+                    </div>
                 </div>
             `;
 
+            let isPlaying = false;
+
             button.addEventListener('click', () => {
+                if (isPlaying) return;
+                isPlaying = true;
+
                 // Detener cualquier vibración anterior
                 navigator.vibrate(0);
                 
                 // Remover clase playing de todos los botones
                 document.querySelectorAll('.song-button').forEach(b => {
                     b.classList.remove('playing');
-                    b.querySelector('.vibration-indicator').textContent = '';
                 });
                 
                 // Añadir clase playing al botón actual
                 button.classList.add('playing');
                 
                 // Crear tono y vibración
-                createTone(songData.rating);
-                const pattern = vibrate(songData.rating);
+                createTone(songData.rating, songData.pulses);
+                const pattern = vibrate(songData.pulses);
                 
-                // Mostrar información de vibración
+                // Calcular duración total
                 const totalDuration = pattern.reduce((a, b) => a + b, 0);
-                const pulses = Math.floor(pattern.length / 2) + 1;
-                button.querySelector('.vibration-indicator').textContent = 
-                    `Vibración: ${pulses} pulsos, ${totalDuration}ms total`;
                 
                 // Remover clase playing después de la animación
                 setTimeout(() => {
                     button.classList.remove('playing');
-                    button.querySelector('.vibration-indicator').textContent = '';
+                    isPlaying = false;
                 }, totalDuration);
             });
 
